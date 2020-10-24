@@ -6,7 +6,8 @@ Save the scipts to your QGIS profile folder \processing\scripts
 
 Install PCRaster and QGIS
 1.	Use the Anaconda prompt
-2.	Create the environment as explained here: https://pcraster.geo.uu.nl/pcraster/4.3.0/documentation/pcraster_project/install.html
+2.	Create the environment as explained here: 
+    https://pcraster.geo.uu.nl/pcraster/4.3.0/documentation/pcraster_project/install.html
     Basically this command will do the job: 
 
     <code>conda create --name pcraster37 -c conda-forge python=3.7 pcraster spyder matplotlib</code>
