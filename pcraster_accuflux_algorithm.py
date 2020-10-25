@@ -22,7 +22,7 @@ from qgis import processing
 from pcraster import *
 
 
-class PCRasterCatchmentAlgorithm(QgsProcessingAlgorithm):
+class PCRasterAccuFluxAlgorithm(QgsProcessingAlgorithm):
     """
     This is an example algorithm that takes a vector layer and
     creates a new identical one.
@@ -40,9 +40,9 @@ class PCRasterCatchmentAlgorithm(QgsProcessingAlgorithm):
     # used when calling the algorithm from another algorithm, or when
     # calling from the QGIS console.
 
-    INPUT_LDD = 'INPUT1'
-    INPUT_OUTLET = 'INPUT2'
-    OUTPUT_CATCHMENT = 'OUTPUT'
+    INPUT_LDD = 'INPUT'
+    INPUT_MATERIAL = 'INPUT2'
+    OUTPUT_ACCUFLUX = 'OUTPUT'
 
     def tr(self, string):
         """
@@ -51,7 +51,7 @@ class PCRasterCatchmentAlgorithm(QgsProcessingAlgorithm):
         return QCoreApplication.translate('Processing', string)
 
     def createInstance(self):
-        return PCRasterCatchmentAlgorithm()
+        return PCRasterAccuFluxAlgorithm()
 
     def name(self):
         """
@@ -61,14 +61,14 @@ class PCRasterCatchmentAlgorithm(QgsProcessingAlgorithm):
         lowercase alphanumeric characters only and no spaces or other
         formatting characters.
         """
-        return 'catchment'
+        return 'accuflux'
 
     def displayName(self):
         """
         Returns the translated algorithm name, which should be used for any
         user-visible display of the algorithm name.
         """
-        return self.tr('catchment')
+        return self.tr('accuflux')
 
     def group(self):
         """
@@ -93,7 +93,7 @@ class PCRasterCatchmentAlgorithm(QgsProcessingAlgorithm):
         should provide a basic description about what the algorithm does and the
         parameters and outputs associated with it..
         """
-        return self.tr("The local drain direction for each cell is defined by ldd. For each non zero value on points its catchment is determined and all cells in its catchment are assigned this non zero value. This procedure is performed for all cells with a non zero value on points, but there is one important exception: subcatchments are not identified: if the catchment of a non zero cell on points is a part of another (larger) catchment of a non zero cell on points, the cells in this smaller subcatchment are assigned the value of the larger enclosing catchment. The operation is performed as follows: for each cell its downstream path is determined which consists of the consecutively neighbouring downstream cells on ldd. On Result each cell is assigned the non zero points cell value which is on its path and which is most far downstream. If all cells on the downstream path of a cell have a value 0 on points a 0 is assigned to the cell on Result. ")
+        return self.tr("This operation calculates for each cell the accumulated amount of material that flows out of the cell into its neighbouring downstream cell. This accumulated amount is the amount of material in the cell itself plus the amount of material in upstream cells of the cell. For each cell, the following procedure is performed: using the local drain direction network on ldd, the catchment of a cell its outflow is determined which is made up the cell itself and all cells that drain to the cell (i.e. which are in upstream direction of the cell). The material values of all cells in the catchment are summed and send to the cell on Resultflux. This value is the amount of material which accumulates during transport in downstream direction to the outflow of the cell.")
 
     def initAlgorithm(self, config=None):
         """
@@ -108,19 +108,18 @@ class PCRasterCatchmentAlgorithm(QgsProcessingAlgorithm):
                 self.tr('LDD layer')
             )
         )
-        
+
         self.addParameter(
             QgsProcessingParameterRasterLayer(
-                self.INPUT_OUTLET,
-                self.tr('Outlet layer')
+                self.INPUT_MATERIAL,
+                self.tr('Material layer')
             )
         )
 
-
         self.addParameter(
             QgsProcessingParameterRasterDestination(
-                self.OUTPUT_CATCHMENT,
-                self.tr('Catchment layer')
+                self.OUTPUT_ACCUFLUX,
+                self.tr('Result flux layer')
             )
         )
 
@@ -130,16 +129,16 @@ class PCRasterCatchmentAlgorithm(QgsProcessingAlgorithm):
         """
 
         input_ldd = self.parameterAsRasterLayer(parameters, self.INPUT_LDD, context)
-        input_outlet = self.parameterAsRasterLayer(parameters, self.INPUT_OUTLET, context)
-        output_catchment = self.parameterAsRasterLayer(parameters, self.OUTPUT_CATCHMENT, context)
+        input_material = self.parameterAsRasterLayer(parameters, self.INPUT_MATERIAL, context)
+        output_accuflux = self.parameterAsRasterLayer(parameters, self.OUTPUT_ACCUFLUX, context)
 
         LDD = readmap(input_ldd.dataProvider().dataSourceUri())
-        Outlets = readmap(input_outlet.dataProvider().dataSourceUri())
-        CatchmentOfOutlets = catchment(LDD,Outlets)
-        outputFilePath = self.parameterAsOutputLayer(parameters, self.OUTPUT_CATCHMENT, context)
-        report(CatchmentOfOutlets,outputFilePath)
+        Material = readmap(input_material.dataProvider().dataSourceUri())
+        ResultFlux = accuflux(LDD,Material)
+        outputFilePath = self.parameterAsOutputLayer(parameters, self.OUTPUT_ACCUFLUX, context)
+        report(ResultFlux,outputFilePath)
 
         results = {}
-        results[self.OUTPUT_CATCHMENT] = output_catchment
+        results[self.OUTPUT_ACCUFLUX] = output_accuflux
         
         return results

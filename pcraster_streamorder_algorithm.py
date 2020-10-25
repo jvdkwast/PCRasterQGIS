@@ -67,7 +67,7 @@ class PCRasterStreamOrderAlgorithm(QgsProcessingAlgorithm):
         Returns the translated algorithm name, which should be used for any
         user-visible display of the algorithm name.
         """
-        return self.tr('Calculate Stream Order')
+        return self.tr('streamorder')
 
     def group(self):
         """
@@ -84,7 +84,7 @@ class PCRasterStreamOrderAlgorithm(QgsProcessingAlgorithm):
         contain lowercase alphanumeric characters only and no spaces or other
         formatting characters.
         """
-        return 'DEM analysis'
+        return 'pcraster'
 
     def shortHelpString(self):
         """
@@ -108,9 +108,7 @@ class PCRasterStreamOrderAlgorithm(QgsProcessingAlgorithm):
             )
         )
 
-        # We add a feature sink in which to store our processed features (this
-        # usually takes the form of a newly created vector layer when the
-        # algorithm is run in QGIS).
+
         self.addParameter(
             QgsProcessingParameterRasterDestination(
                 self.OUTPUT_STREAMORDER,
@@ -131,10 +129,7 @@ class PCRasterStreamOrderAlgorithm(QgsProcessingAlgorithm):
         strahler = streamorder(LDD)
         outputFilePath = self.parameterAsOutputLayer(parameters, self.OUTPUT_STREAMORDER, context)
         report(strahler,outputFilePath)
-        #src_ds = gdal.open(outputFilePath)
-        #dst_ds = gdal.Translate(os.path.splitext(outputFilePath)[0]+".tif", src_ds)
-        #dst_ds = None
-        #src_ds = None
+
         results = {}
         results[self.OUTPUT_STREAMORDER] = output_streamorder
         

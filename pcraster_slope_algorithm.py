@@ -41,7 +41,7 @@ class PCRasterSlopeAlgorithm(QgsProcessingAlgorithm):
     # calling from the QGIS console.
 
     INPUT_DEM = 'INPUT'
-    OUTPUT_LDD = 'OUTPUT'
+    OUTPUT_SLOPE = 'OUTPUT'
 
     def tr(self, string):
         """
@@ -67,7 +67,7 @@ class PCRasterSlopeAlgorithm(QgsProcessingAlgorithm):
         Returns the translated algorithm name, which should be used for any
         user-visible display of the algorithm name.
         """
-        return self.tr('Calculate slope from DEM')
+        return self.tr('slope')
 
     def group(self):
         """
@@ -84,7 +84,7 @@ class PCRasterSlopeAlgorithm(QgsProcessingAlgorithm):
         contain lowercase alphanumeric characters only and no spaces or other
         formatting characters.
         """
-        return 'DEM analysis'
+        return 'pcraster'
 
     def shortHelpString(self):
         """
@@ -92,7 +92,7 @@ class PCRasterSlopeAlgorithm(QgsProcessingAlgorithm):
         should provide a basic description about what the algorithm does and the
         parameters and outputs associated with it..
         """
-        return self.tr("Calculation of slope from a DEM using PCRaster")
+        return self.tr("slope")
 
     def initAlgorithm(self, config=None):
         """
@@ -124,21 +124,15 @@ class PCRasterSlopeAlgorithm(QgsProcessingAlgorithm):
         """
 
         input_dem = self.parameterAsRasterLayer(parameters, self.INPUT_DEM, context)
-        #print(input_dem.dataProvider().dataSourceUri())
 
-        #input_dem = self.parameterAsRasterLayer(parameters, self.INPUT_DEM, context)
         output_slope = self.parameterAsRasterLayer(parameters, self.OUTPUT_SLOPE, context)
-        #print(QgsDataSourceUri(input_dem))
-        #print(self.INPUT_DEM)
+
         DEM = readmap(input_dem.dataProvider().dataSourceUri())
         slopeMap = slope(DEM)
         outputFilePath = self.parameterAsOutputLayer(parameters, self.OUTPUT_SLOPE, context)
-        print(outputFilePath)
+
         report(slopeMap,outputFilePath)
-        #src_ds = gdal.open(outputFilePath)
-        #dst_ds = gdal.Translate(os.path.splitext(outputFilePath)[0]+".tif", src_ds)
-        #dst_ds = None
-        #src_ds = None
+
         results = {}
         results[self.OUTPUT_SLOPE] = output_slope
         

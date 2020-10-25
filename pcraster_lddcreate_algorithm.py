@@ -17,7 +17,8 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingAlgorithm,
                        QgsDataSourceUri,
                        QgsProcessingParameterRasterDestination,
-                       QgsProcessingParameterRasterLayer)
+                       QgsProcessingParameterRasterLayer,
+                       QgsProcessingParameterNumber)
 from qgis import processing
 from pcraster import *
 
@@ -41,6 +42,10 @@ class PCRasterLDDCreateAlgorithm(QgsProcessingAlgorithm):
     # calling from the QGIS console.
 
     INPUT_DEM = 'INPUT'
+    INPUT_OUTFLOWDEPTH = 'INPUT2'
+    INPUT_COREVOLUME = 'INPUT3'
+    INPUT_COREAREA = 'INPUT4'
+    INPUT_PRECIPITATION = 'INPUT5'
     OUTPUT_LDD = 'OUTPUT'
 
     def tr(self, string):
@@ -67,7 +72,7 @@ class PCRasterLDDCreateAlgorithm(QgsProcessingAlgorithm):
         Returns the translated algorithm name, which should be used for any
         user-visible display of the algorithm name.
         """
-        return self.tr('Calculate flow direction from DEM')
+        return self.tr('lddcreate')
 
     def group(self):
         """
@@ -84,7 +89,7 @@ class PCRasterLDDCreateAlgorithm(QgsProcessingAlgorithm):
         contain lowercase alphanumeric characters only and no spaces or other
         formatting characters.
         """
-        return 'DEM analysis'
+        return 'pcraster'
 
     def shortHelpString(self):
         """
@@ -92,7 +97,7 @@ class PCRasterLDDCreateAlgorithm(QgsProcessingAlgorithm):
         should provide a basic description about what the algorithm does and the
         parameters and outputs associated with it..
         """
-        return self.tr("Calculation of local drain direction map from a DEM using PCRaster")
+        return self.tr("Local drain direction map with flow directions from each cell to its steepest downslope neighbour")
 
     def initAlgorithm(self, config=None):
         """
@@ -108,15 +113,49 @@ class PCRasterLDDCreateAlgorithm(QgsProcessingAlgorithm):
             )
         )
 
+        self.addParameter(
+            QgsProcessingParameterNumber(
+                self.INPUT_OUTFLOWDEPTH,
+                self.tr('Outflow depth (map units)'),
+                defaultValue=9999999
+            )
+        )
+        
+        self.addParameter(
+            QgsProcessingParameterNumber(
+                self.INPUT_COREAREA,
+                self.tr('Core area (map units)'),
+                defaultValue=9999999
+            )
+        )
+        
+        self.addParameter(
+            QgsProcessingParameterNumber(
+                self.INPUT_COREVOLUME,
+                self.tr('Core volume (map units)'),
+                defaultValue=9999999
+            )
+        )
+
+        self.addParameter(
+            QgsProcessingParameterNumber(
+                self.INPUT_PRECIPITATION,
+                self.tr('Catchment precipitation (map units)'),
+                defaultValue=9999999
+            )
+        )
+
+
         # We add a feature sink in which to store our processed features (this
         # usually takes the form of a newly created vector layer when the
         # algorithm is run in QGIS).
         self.addParameter(
             QgsProcessingParameterRasterDestination(
                 self.OUTPUT_LDD,
-                self.tr('LDD layer')
+                self.tr('Local Drain Direction Layer')
             )
         )
+        
 
     def processAlgorithm(self, parameters, context, feedback):
         """
@@ -124,21 +163,17 @@ class PCRasterLDDCreateAlgorithm(QgsProcessingAlgorithm):
         """
 
         input_dem = self.parameterAsRasterLayer(parameters, self.INPUT_DEM, context)
-        #print(input_dem.dataProvider().dataSourceUri())
-
-        #input_dem = self.parameterAsRasterLayer(parameters, self.INPUT_DEM, context)
+        input_outflowdepth = self.parameterAsDouble(parameters, self.INPUT_OUTFLOWDEPTH, context)
+        input_corearea = self.parameterAsDouble(parameters, self.INPUT_COREAREA, context)
+        input_corevolume = self.parameterAsDouble(parameters, self.INPUT_COREVOLUME, context)
+        input_precipitation = self.parameterAsDouble(parameters, self.INPUT_PRECIPITATION, context)
         output_ldd = self.parameterAsRasterLayer(parameters, self.OUTPUT_LDD, context)
-        #print(QgsDataSourceUri(input_dem))
-        #print(self.INPUT_DEM)
+
         DEM = readmap(input_dem.dataProvider().dataSourceUri())
-        lddMap = lddcreate(DEM, 1e31, 1e31, 1e31, 1e31)
+        LDD = lddcreate(DEM, input_outflowdepth, input_corearea, input_corevolume, input_precipitation)
         outputFilePath = self.parameterAsOutputLayer(parameters, self.OUTPUT_LDD, context)
-        print(outputFilePath)
-        report(lddMap,outputFilePath)
-        #src_ds = gdal.open(outputFilePath)
-        #dst_ds = gdal.Translate(os.path.splitext(outputFilePath)[0]+".tif", src_ds)
-        #dst_ds = None
-        #src_ds = None
+        report(LDD,outputFilePath)
+
         results = {}
         results[self.OUTPUT_LDD] = output_ldd
         
