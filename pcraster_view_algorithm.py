@@ -17,13 +17,12 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingAlgorithm,
                        QgsDataSourceUri,
                        QgsProcessingParameterRasterDestination,
-                       QgsProcessingParameterRasterLayer,
-                       QgsProcessingParameterNumber)
+                       QgsProcessingParameterRasterLayer)
 from qgis import processing
 from pcraster import *
 
 
-class PCRasterInversedistanceAlgorithm(QgsProcessingAlgorithm):
+class PCRasterViewAlgorithm(QgsProcessingAlgorithm):
     """
     This is an example algorithm that takes a vector layer and
     creates a new identical one.
@@ -41,12 +40,9 @@ class PCRasterInversedistanceAlgorithm(QgsProcessingAlgorithm):
     # used when calling the algorithm from another algorithm, or when
     # calling from the QGIS console.
 
-    INPUT_MASK = 'INPUT'
+    INPUT_DEM = 'INPUT'
     INPUT_POINTS = 'INPUT2'
-    INPUT_IDP = 'INPUT3'
-    INPUT_RADIUS = 'INPUT4'
-    INPUT_MAXNR = 'INPUT5'
-    OUTPUT_INVERSEDISTANCE = 'OUTPUT'
+    OUTPUT_VIEW = 'OUTPUT'
 
     def tr(self, string):
         """
@@ -55,7 +51,7 @@ class PCRasterInversedistanceAlgorithm(QgsProcessingAlgorithm):
         return QCoreApplication.translate('Processing', string)
 
     def createInstance(self):
-        return PCRasterInversedistanceAlgorithm()
+        return PCRasterViewAlgorithm()
 
     def name(self):
         """
@@ -65,14 +61,14 @@ class PCRasterInversedistanceAlgorithm(QgsProcessingAlgorithm):
         lowercase alphanumeric characters only and no spaces or other
         formatting characters.
         """
-        return 'inversedistance'
+        return 'view'
 
     def displayName(self):
         """
         Returns the translated algorithm name, which should be used for any
         user-visible display of the algorithm name.
         """
-        return self.tr('inversedistance')
+        return self.tr('view')
 
     def group(self):
         """
@@ -97,7 +93,7 @@ class PCRasterInversedistanceAlgorithm(QgsProcessingAlgorithm):
         should provide a basic description about what the algorithm does and the
         parameters and outputs associated with it..
         """
-        return self.tr("Interpolate values using inverse distance weighing (IDW).")
+        return self.tr("TRUE or FALSE value for visibility from viewpoint(s) defined by a digital elevation model")
 
     def initAlgorithm(self, config=None):
         """
@@ -108,73 +104,41 @@ class PCRasterInversedistanceAlgorithm(QgsProcessingAlgorithm):
         # We add the input DEM.
         self.addParameter(
             QgsProcessingParameterRasterLayer(
-                self.INPUT_MASK,
-                self.tr('Mask layer')
+                self.INPUT_DEM,
+                self.tr('DEM layer')
             )
         )
 
         self.addParameter(
             QgsProcessingParameterRasterLayer(
                 self.INPUT_POINTS,
-                self.tr('Raster layer with values to be interpolated')
-            )
-        )
-        
-        self.addParameter(
-            QgsProcessingParameterNumber(
-                self.INPUT_IDP,
-                self.tr('Power'),
-                defaultValue=2
+                self.tr('Boolean viewpoints layer')
             )
         )
 
-        self.addParameter(
-            QgsProcessingParameterNumber(
-                self.INPUT_RADIUS,
-                self.tr('Radius. 0 includes all points.'),
-                defaultValue=0
-            )
-        )
-        
-        self.addParameter(
-            QgsProcessingParameterNumber(
-                self.INPUT_MAXNR,
-                self.tr('Maximum number of closest points. 0 includes all points.'),
-                defaultValue=0
-            )
-        )
-
-
-        # We add a feature sink in which to store our processed features (this
-        # usually takes the form of a newly created vector layer when the
-        # algorithm is run in QGIS).
         self.addParameter(
             QgsProcessingParameterRasterDestination(
-                self.OUTPUT_INVERSEDISTANCE,
-                self.tr('Inverse Distance Interpolation output')
+                self.OUTPUT_VIEW,
+                self.tr('Viewshed layer')
             )
         )
-        
 
     def processAlgorithm(self, parameters, context, feedback):
         """
         Here is where the processing itself takes place.
         """
 
-        input_mask = self.parameterAsRasterLayer(parameters, self.INPUT_MASK, context)
+        input_dem = self.parameterAsRasterLayer(parameters, self.INPUT_DEM, context)
         input_points = self.parameterAsRasterLayer(parameters, self.INPUT_POINTS, context)
-        input_idp = self.parameterAsDouble(parameters, self.INPUT_IDP, context)
-        input_radius = self.parameterAsDouble(parameters, self.INPUT_RADIUS, context)
-        input_maxnr = self.parameterAsDouble(parameters, self.INPUT_MAXNR, context)
-        output_idw = self.parameterAsRasterLayer(parameters, self.OUTPUT_INVERSEDISTANCE, context)
+        output_view = self.parameterAsRasterLayer(parameters, self.OUTPUT_VIEW, context)
 
-        MaskLayer = readmap(input_mask.dataProvider().dataSourceUri())
-        PointsLayer = readmap(input_points.dataProvider().dataSourceUri())
-        IDW = inversedistance(MaskLayer,PointsLayer,input_idp,input_radius,input_maxnr)
-        outputFilePath = self.parameterAsOutputLayer(parameters, self.OUTPUT_INVERSEDISTANCE, context)
-        report(IDW,outputFilePath)
+        DEM = readmap(input_dem.dataProvider().dataSourceUri())
+        Points = readmap(input_points.dataProvider().dataSourceUri())
+        Viewshed = view(DEM,Points)
+        outputFilePath = self.parameterAsOutputLayer(parameters, self.OUTPUT_VIEW, context)
+        report(Viewshed,outputFilePath)
 
         results = {}
-        results[self.OUTPUT_INVERSEDISTANCE] = output_idw
+        results[self.OUTPUT_VIEW] = output_view
         
         return results

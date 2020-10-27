@@ -17,13 +17,12 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingAlgorithm,
                        QgsDataSourceUri,
                        QgsProcessingParameterRasterDestination,
-                       QgsProcessingParameterRasterLayer,
-                       QgsProcessingParameterNumber)
+                       QgsProcessingParameterRasterLayer)
 from qgis import processing
 from pcraster import *
 
 
-class PCRasterInversedistanceAlgorithm(QgsProcessingAlgorithm):
+class PCRasterUpstreamAlgorithm(QgsProcessingAlgorithm):
     """
     This is an example algorithm that takes a vector layer and
     creates a new identical one.
@@ -41,12 +40,9 @@ class PCRasterInversedistanceAlgorithm(QgsProcessingAlgorithm):
     # used when calling the algorithm from another algorithm, or when
     # calling from the QGIS console.
 
-    INPUT_MASK = 'INPUT'
-    INPUT_POINTS = 'INPUT2'
-    INPUT_IDP = 'INPUT3'
-    INPUT_RADIUS = 'INPUT4'
-    INPUT_MAXNR = 'INPUT5'
-    OUTPUT_INVERSEDISTANCE = 'OUTPUT'
+    INPUT_LDD = 'INPUT1'
+    INPUT_RASTER = 'INPUT2'
+    OUTPUT_UPSTREAM = 'OUTPUT'
 
     def tr(self, string):
         """
@@ -55,7 +51,7 @@ class PCRasterInversedistanceAlgorithm(QgsProcessingAlgorithm):
         return QCoreApplication.translate('Processing', string)
 
     def createInstance(self):
-        return PCRasterInversedistanceAlgorithm()
+        return PCRasterUpstreamAlgorithm()
 
     def name(self):
         """
@@ -65,14 +61,14 @@ class PCRasterInversedistanceAlgorithm(QgsProcessingAlgorithm):
         lowercase alphanumeric characters only and no spaces or other
         formatting characters.
         """
-        return 'inversedistance'
+        return 'upstream'
 
     def displayName(self):
         """
         Returns the translated algorithm name, which should be used for any
         user-visible display of the algorithm name.
         """
-        return self.tr('inversedistance')
+        return self.tr('upstream')
 
     def group(self):
         """
@@ -97,7 +93,7 @@ class PCRasterInversedistanceAlgorithm(QgsProcessingAlgorithm):
         should provide a basic description about what the algorithm does and the
         parameters and outputs associated with it..
         """
-        return self.tr("Interpolate values using inverse distance weighing (IDW).")
+        return self.tr("Sum of the cell values of its first upstream cell(s)")
 
     def initAlgorithm(self, config=None):
         """
@@ -105,76 +101,44 @@ class PCRasterInversedistanceAlgorithm(QgsProcessingAlgorithm):
         with some other properties.
         """
 
-        # We add the input DEM.
         self.addParameter(
             QgsProcessingParameterRasterLayer(
-                self.INPUT_MASK,
-                self.tr('Mask layer')
-            )
-        )
-
-        self.addParameter(
-            QgsProcessingParameterRasterLayer(
-                self.INPUT_POINTS,
-                self.tr('Raster layer with values to be interpolated')
+                self.INPUT_LDD,
+                self.tr('LDD layer')
             )
         )
         
         self.addParameter(
-            QgsProcessingParameterNumber(
-                self.INPUT_IDP,
-                self.tr('Power'),
-                defaultValue=2
-            )
-        )
-
-        self.addParameter(
-            QgsProcessingParameterNumber(
-                self.INPUT_RADIUS,
-                self.tr('Radius. 0 includes all points.'),
-                defaultValue=0
-            )
-        )
-        
-        self.addParameter(
-            QgsProcessingParameterNumber(
-                self.INPUT_MAXNR,
-                self.tr('Maximum number of closest points. 0 includes all points.'),
-                defaultValue=0
+            QgsProcessingParameterRasterLayer(
+                self.INPUT_RASTER,
+                self.tr('Material layer')
             )
         )
 
 
-        # We add a feature sink in which to store our processed features (this
-        # usually takes the form of a newly created vector layer when the
-        # algorithm is run in QGIS).
         self.addParameter(
             QgsProcessingParameterRasterDestination(
-                self.OUTPUT_INVERSEDISTANCE,
-                self.tr('Inverse Distance Interpolation output')
+                self.OUTPUT_UPSTREAM,
+                self.tr('Upstream layer')
             )
         )
-        
 
     def processAlgorithm(self, parameters, context, feedback):
         """
         Here is where the processing itself takes place.
         """
 
-        input_mask = self.parameterAsRasterLayer(parameters, self.INPUT_MASK, context)
-        input_points = self.parameterAsRasterLayer(parameters, self.INPUT_POINTS, context)
-        input_idp = self.parameterAsDouble(parameters, self.INPUT_IDP, context)
-        input_radius = self.parameterAsDouble(parameters, self.INPUT_RADIUS, context)
-        input_maxnr = self.parameterAsDouble(parameters, self.INPUT_MAXNR, context)
-        output_idw = self.parameterAsRasterLayer(parameters, self.OUTPUT_INVERSEDISTANCE, context)
+        input_ldd = self.parameterAsRasterLayer(parameters, self.INPUT_LDD, context)
+        input_raster = self.parameterAsRasterLayer(parameters, self.INPUT_RASTER, context)
+        output_upstream = self.parameterAsRasterLayer(parameters, self.OUTPUT_UPSTREAM, context)
 
-        MaskLayer = readmap(input_mask.dataProvider().dataSourceUri())
-        PointsLayer = readmap(input_points.dataProvider().dataSourceUri())
-        IDW = inversedistance(MaskLayer,PointsLayer,input_idp,input_radius,input_maxnr)
-        outputFilePath = self.parameterAsOutputLayer(parameters, self.OUTPUT_INVERSEDISTANCE, context)
-        report(IDW,outputFilePath)
+        LDD = readmap(input_ldd.dataProvider().dataSourceUri())
+        RasterInput = readmap(input_raster.dataProvider().dataSourceUri())
+        Upstream = upstream(LDD,RasterInput)
+        outputFilePath = self.parameterAsOutputLayer(parameters, self.OUTPUT_UPSTREAM, context)
+        report(Upstream,outputFilePath)
 
         results = {}
-        results[self.OUTPUT_INVERSEDISTANCE] = output_idw
+        results[self.OUTPUT_UPSTREAM] = output_upstream
         
         return results
