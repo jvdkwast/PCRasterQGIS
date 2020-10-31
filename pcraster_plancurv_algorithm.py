@@ -124,7 +124,7 @@ class PCRasterPlancurvAlgorithm(QgsProcessingAlgorithm):
         input_dem = self.parameterAsRasterLayer(parameters, self.INPUT_DEM, context)
 
         output_plancurv = self.parameterAsRasterLayer(parameters, self.OUTPUT_PLANCURV, context)
-
+        setclone(input_dem.dataProvider().dataSourceUri())
         DEM = readmap(input_dem.dataProvider().dataSourceUri())
         PlanCurvLayer = plancurv(DEM)
         outputFilePath = self.parameterAsOutputLayer(parameters, self.OUTPUT_PLANCURV, context)

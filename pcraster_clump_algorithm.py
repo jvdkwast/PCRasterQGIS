@@ -107,9 +107,7 @@ class PCRasterClumpAlgorithm(QgsProcessingAlgorithm):
             )
         )
 
-        # We add a feature sink in which to store our processed features (this
-        # usually takes the form of a newly created vector layer when the
-        # algorithm is run in QGIS).
+
         self.addParameter(
             QgsProcessingParameterRasterDestination(
                 self.OUTPUT_CLUMP,
@@ -125,7 +123,7 @@ class PCRasterClumpAlgorithm(QgsProcessingAlgorithm):
         input_raster = self.parameterAsRasterLayer(parameters, self.INPUT_RASTER, context)
 
         output_clump = self.parameterAsRasterLayer(parameters, self.OUTPUT_CLUMP, context)
-
+        setclone(input_raster.dataProvider().dataSourceUri())
         ClassLayer = readmap(input_raster.dataProvider().dataSourceUri())
         ClumpResult = clump(ClassLayer)
         outputFilePath = self.parameterAsOutputLayer(parameters, self.OUTPUT_CLUMP, context)

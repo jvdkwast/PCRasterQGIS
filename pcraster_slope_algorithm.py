@@ -108,9 +108,7 @@ class PCRasterSlopeAlgorithm(QgsProcessingAlgorithm):
             )
         )
 
-        # We add a feature sink in which to store our processed features (this
-        # usually takes the form of a newly created vector layer when the
-        # algorithm is run in QGIS).
+
         self.addParameter(
             QgsProcessingParameterRasterDestination(
                 self.OUTPUT_SLOPE,
@@ -126,7 +124,7 @@ class PCRasterSlopeAlgorithm(QgsProcessingAlgorithm):
         input_dem = self.parameterAsRasterLayer(parameters, self.INPUT_DEM, context)
 
         output_slope = self.parameterAsRasterLayer(parameters, self.OUTPUT_SLOPE, context)
-
+        setclone(input_dem.dataProvider().dataSourceUri())
         DEM = readmap(input_dem.dataProvider().dataSourceUri())
         slopeMap = slope(DEM)
         outputFilePath = self.parameterAsOutputLayer(parameters, self.OUTPUT_SLOPE, context)

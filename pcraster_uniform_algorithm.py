@@ -124,7 +124,7 @@ class PCRasterUniformAlgorithm(QgsProcessingAlgorithm):
         input_boolean = self.parameterAsRasterLayer(parameters, self.INPUT_BOOLEAN, context)
 
         output_uniform = self.parameterAsRasterLayer(parameters, self.OUTPUT_UNIFORM, context)
-
+        setclone(input_boolean.dataProvider().dataSourceUri())
         InputBoolean = readmap(input_boolean.dataProvider().dataSourceUri())
         UniformLayer = uniform(InputBoolean)
         outputFilePath = self.parameterAsOutputLayer(parameters, self.OUTPUT_UNIFORM, context)

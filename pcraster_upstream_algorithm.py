@@ -131,7 +131,7 @@ class PCRasterUpstreamAlgorithm(QgsProcessingAlgorithm):
         input_ldd = self.parameterAsRasterLayer(parameters, self.INPUT_LDD, context)
         input_raster = self.parameterAsRasterLayer(parameters, self.INPUT_RASTER, context)
         output_upstream = self.parameterAsRasterLayer(parameters, self.OUTPUT_UPSTREAM, context)
-
+        setclone(input_ldd.dataProvider().dataSourceUri())
         LDD = readmap(input_ldd.dataProvider().dataSourceUri())
         RasterInput = readmap(input_raster.dataProvider().dataSourceUri())
         Upstream = upstream(LDD,RasterInput)

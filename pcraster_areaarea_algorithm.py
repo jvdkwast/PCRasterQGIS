@@ -123,7 +123,7 @@ class PCRasterAreaareaAlgorithm(QgsProcessingAlgorithm):
         input_discrete = self.parameterAsRasterLayer(parameters, self.INPUT_DISCRETE, context)
 
         output_area = self.parameterAsRasterLayer(parameters, self.OUTPUT_AREA, context)
-
+        setclone(input_discrete.dataProvider().dataSourceUri())
         ClassLayer = readmap(input_discrete.dataProvider().dataSourceUri())
         AreaLayer = areaarea(ClassLayer)
         outputFilePath = self.parameterAsOutputLayer(parameters, self.OUTPUT_AREA, context)

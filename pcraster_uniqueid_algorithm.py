@@ -100,7 +100,6 @@ class PCRasterUniqueidAlgorithm(QgsProcessingAlgorithm):
         with some other properties.
         """
 
-        # We add the input DEM.
         self.addParameter(
             QgsProcessingParameterRasterLayer(
                 self.INPUT_BOOLEAN,
@@ -124,7 +123,7 @@ class PCRasterUniqueidAlgorithm(QgsProcessingAlgorithm):
         input_boolean = self.parameterAsRasterLayer(parameters, self.INPUT_BOOLEAN, context)
 
         output_scalar = self.parameterAsRasterLayer(parameters, self.OUTPUT_SCALAR, context)
-
+        setclone(input_boolean.dataProvider().dataSourceUri())
         InputLayer = readmap(input_boolean.dataProvider().dataSourceUri())
         ID = uniqueid(InputLayer)
         outputFilePath = self.parameterAsOutputLayer(parameters, self.OUTPUT_SCALAR, context)

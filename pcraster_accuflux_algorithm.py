@@ -131,7 +131,7 @@ class PCRasterAccuFluxAlgorithm(QgsProcessingAlgorithm):
         input_ldd = self.parameterAsRasterLayer(parameters, self.INPUT_LDD, context)
         input_material = self.parameterAsRasterLayer(parameters, self.INPUT_MATERIAL, context)
         output_accuflux = self.parameterAsRasterLayer(parameters, self.OUTPUT_ACCUFLUX, context)
-
+        setclone(input_ldd.dataProvider().dataSourceUri())
         LDD = readmap(input_ldd.dataProvider().dataSourceUri())
         Material = readmap(input_material.dataProvider().dataSourceUri())
         ResultFlux = accuflux(LDD,Material)

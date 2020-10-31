@@ -145,9 +145,6 @@ class PCRasterInversedistanceAlgorithm(QgsProcessingAlgorithm):
         )
 
 
-        # We add a feature sink in which to store our processed features (this
-        # usually takes the form of a newly created vector layer when the
-        # algorithm is run in QGIS).
         self.addParameter(
             QgsProcessingParameterRasterDestination(
                 self.OUTPUT_INVERSEDISTANCE,
@@ -167,7 +164,7 @@ class PCRasterInversedistanceAlgorithm(QgsProcessingAlgorithm):
         input_radius = self.parameterAsDouble(parameters, self.INPUT_RADIUS, context)
         input_maxnr = self.parameterAsDouble(parameters, self.INPUT_MAXNR, context)
         output_idw = self.parameterAsRasterLayer(parameters, self.OUTPUT_INVERSEDISTANCE, context)
-
+        setclone(input_mask.dataProvider().dataSourceUri())
         MaskLayer = readmap(input_mask.dataProvider().dataSourceUri())
         PointsLayer = readmap(input_points.dataProvider().dataSourceUri())
         IDW = inversedistance(MaskLayer,PointsLayer,input_idp,input_radius,input_maxnr)

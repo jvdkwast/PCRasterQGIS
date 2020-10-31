@@ -131,7 +131,7 @@ class PCRasterViewAlgorithm(QgsProcessingAlgorithm):
         input_dem = self.parameterAsRasterLayer(parameters, self.INPUT_DEM, context)
         input_points = self.parameterAsRasterLayer(parameters, self.INPUT_POINTS, context)
         output_view = self.parameterAsRasterLayer(parameters, self.OUTPUT_VIEW, context)
-
+        setclone(input_dem.dataProvider().dataSourceUri())
         DEM = readmap(input_dem.dataProvider().dataSourceUri())
         Points = readmap(input_points.dataProvider().dataSourceUri())
         Viewshed = view(DEM,Points)

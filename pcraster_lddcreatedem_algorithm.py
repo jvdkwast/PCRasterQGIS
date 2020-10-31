@@ -146,9 +146,6 @@ class PCRasterLDDCreateDEMAlgorithm(QgsProcessingAlgorithm):
         )
 
 
-        # We add a feature sink in which to store our processed features (this
-        # usually takes the form of a newly created vector layer when the
-        # algorithm is run in QGIS).
         self.addParameter(
             QgsProcessingParameterRasterDestination(
                 self.OUTPUT_DEMFILLED,
@@ -168,7 +165,7 @@ class PCRasterLDDCreateDEMAlgorithm(QgsProcessingAlgorithm):
         input_corevolume = self.parameterAsDouble(parameters, self.INPUT_COREVOLUME, context)
         input_precipitation = self.parameterAsDouble(parameters, self.INPUT_PRECIPITATION, context)
         output_demfilled = self.parameterAsRasterLayer(parameters, self.OUTPUT_DEMFILLED, context)
-
+        setclone(input_dem.dataProvider().dataSourceUri())
         DEM = readmap(input_dem.dataProvider().dataSourceUri())
         DEMFilled = lddcreatedem(DEM, input_outflowdepth, input_corearea, input_corevolume, input_precipitation)
         outputFilePath = self.parameterAsOutputLayer(parameters, self.OUTPUT_DEMFILLED, context)

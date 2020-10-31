@@ -101,7 +101,6 @@ class PCRasterSubcatchmentAlgorithm(QgsProcessingAlgorithm):
         with some other properties.
         """
 
-        # We add the input DEM.
         self.addParameter(
             QgsProcessingParameterRasterLayer(
                 self.INPUT_LDD,
@@ -132,7 +131,7 @@ class PCRasterSubcatchmentAlgorithm(QgsProcessingAlgorithm):
         input_ldd = self.parameterAsRasterLayer(parameters, self.INPUT_LDD, context)
         input_outlet = self.parameterAsRasterLayer(parameters, self.INPUT_OUTLET, context)
         output_catchment = self.parameterAsRasterLayer(parameters, self.OUTPUT_CATCHMENT, context)
-
+        setclone(input_ldd.dataProvider().dataSourceUri())
         LDD = readmap(input_ldd.dataProvider().dataSourceUri())
         Outlets = readmap(input_outlet.dataProvider().dataSourceUri())
         CatchmentOfOutlets = subcatchment(LDD,Outlets)

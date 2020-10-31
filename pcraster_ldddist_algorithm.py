@@ -102,7 +102,6 @@ class PCRasterLDDDistAlgorithm(QgsProcessingAlgorithm):
         with some other properties.
         """
 
-        # We add the input DEM.
         self.addParameter(
             QgsProcessingParameterRasterLayer(
                 self.INPUT_LDD,
@@ -140,7 +139,7 @@ class PCRasterLDDDistAlgorithm(QgsProcessingAlgorithm):
         input_points = self.parameterAsRasterLayer(parameters, self.INPUT_POINTS, context)
         input_friction = self.parameterAsRasterLayer(parameters, self.INPUT_FRICTION, context)
         output_ldddist = self.parameterAsRasterLayer(parameters, self.OUTPUT_LDDDIST, context)
-
+        setclone(input_ldd.dataProvider().dataSourceUri())
         LDD = readmap(input_ldd.dataProvider().dataSourceUri())
         Points = readmap(input_points.dataProvider().dataSourceUri())
         Friction = readmap(input_friction.dataProvider().dataSourceUri())

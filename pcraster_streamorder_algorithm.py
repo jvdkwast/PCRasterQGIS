@@ -100,7 +100,7 @@ class PCRasterStreamOrderAlgorithm(QgsProcessingAlgorithm):
         with some other properties.
         """
 
-        # We add the input DEM.
+
         self.addParameter(
             QgsProcessingParameterRasterLayer(
                 self.INPUT_LDD,
@@ -124,7 +124,7 @@ class PCRasterStreamOrderAlgorithm(QgsProcessingAlgorithm):
         input_ldd = self.parameterAsRasterLayer(parameters, self.INPUT_LDD, context)
 
         output_streamorder = self.parameterAsRasterLayer(parameters, self.OUTPUT_STREAMORDER, context)
-
+        setclone(input_ldd.dataProvider().dataSourceUri())
         LDD = readmap(input_ldd.dataProvider().dataSourceUri())
         strahler = streamorder(LDD)
         outputFilePath = self.parameterAsOutputLayer(parameters, self.OUTPUT_STREAMORDER, context)

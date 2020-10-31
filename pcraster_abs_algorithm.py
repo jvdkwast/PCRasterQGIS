@@ -124,7 +124,7 @@ class PCRasterAbsAlgorithm(QgsProcessingAlgorithm):
         input_raster = self.parameterAsRasterLayer(parameters, self.INPUT_RASTER, context)
 
         output_raster = self.parameterAsRasterLayer(parameters, self.OUTPUT_RASTER, context)
-
+        setclone(input_raster.dataProvider().dataSourceUri())
         InputRaster = readmap(input_raster.dataProvider().dataSourceUri())
         AbsLayer = abs(InputRaster)
         outputFilePath = self.parameterAsOutputLayer(parameters, self.OUTPUT_RASTER, context)

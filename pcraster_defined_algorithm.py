@@ -100,7 +100,6 @@ class PCRasterDefinedAlgorithm(QgsProcessingAlgorithm):
         with some other properties.
         """
 
-        # We add the input DEM.
         self.addParameter(
             QgsProcessingParameterRasterLayer(
                 self.INPUT_RASTER,
@@ -124,7 +123,7 @@ class PCRasterDefinedAlgorithm(QgsProcessingAlgorithm):
         input_raster = self.parameterAsRasterLayer(parameters, self.INPUT_RASTER, context)
 
         output_boolean = self.parameterAsRasterLayer(parameters, self.OUTPUT_BOOLEAN, context)
-
+        setclone(input_raster.dataProvider().dataSourceUri())
         InputRaster = readmap(input_raster.dataProvider().dataSourceUri())
         DefinedLayer = defined(InputRaster)
         outputFilePath = self.parameterAsOutputLayer(parameters, self.OUTPUT_BOOLEAN, context)

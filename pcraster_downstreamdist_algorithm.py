@@ -108,9 +108,7 @@ class PCRasterDownstreamdistAlgorithm(QgsProcessingAlgorithm):
             )
         )
 
-        # We add a feature sink in which to store our processed features (this
-        # usually takes the form of a newly created vector layer when the
-        # algorithm is run in QGIS).
+
         self.addParameter(
             QgsProcessingParameterRasterDestination(
                 self.OUTPUT_DOWNSTREAMDIST,
@@ -126,7 +124,7 @@ class PCRasterDownstreamdistAlgorithm(QgsProcessingAlgorithm):
         input_ldd = self.parameterAsRasterLayer(parameters, self.INPUT_LDD, context)
 
         output_downstreamdist = self.parameterAsRasterLayer(parameters, self.OUTPUT_DOWNSTREAMDIST, context)
-
+        setclone(input_ldd.dataProvider().dataSourceUri())
         LDD = readmap(input_ldd.dataProvider().dataSourceUri())
         Distance = downstreamdist(LDD)
         outputFilePath = self.parameterAsOutputLayer(parameters, self.OUTPUT_DOWNSTREAMDIST, context)

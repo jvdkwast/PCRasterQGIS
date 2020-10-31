@@ -168,7 +168,7 @@ class PCRasterLDDCreateAlgorithm(QgsProcessingAlgorithm):
         input_corevolume = self.parameterAsDouble(parameters, self.INPUT_COREVOLUME, context)
         input_precipitation = self.parameterAsDouble(parameters, self.INPUT_PRECIPITATION, context)
         output_ldd = self.parameterAsRasterLayer(parameters, self.OUTPUT_LDD, context)
-
+        setclone(input_dem.dataProvider().dataSourceUri())
         DEM = readmap(input_dem.dataProvider().dataSourceUri())
         LDD = lddcreate(DEM, input_outflowdepth, input_corearea, input_corevolume, input_precipitation)
         outputFilePath = self.parameterAsOutputLayer(parameters, self.OUTPUT_LDD, context)

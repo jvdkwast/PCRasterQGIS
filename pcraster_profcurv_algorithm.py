@@ -124,7 +124,7 @@ class PCRasterProfcurvAlgorithm(QgsProcessingAlgorithm):
         input_dem = self.parameterAsRasterLayer(parameters, self.INPUT_DEM, context)
 
         output_profcurv = self.parameterAsRasterLayer(parameters, self.OUTPUT_PROFCURV, context)
-
+        setclone(input_dem.dataProvider().dataSourceUri())
         DEM = readmap(input_dem.dataProvider().dataSourceUri())
         ProfCurvLayer = profcurv(DEM)
         outputFilePath = self.parameterAsOutputLayer(parameters, self.OUTPUT_PROFCURV, context)

@@ -141,7 +141,7 @@ class PCRasterSpreadAlgorithm(QgsProcessingAlgorithm):
         input_initial = self.parameterAsRasterLayer(parameters, self.INPUT_INITIALFRICTION, context)
         input_friction = self.parameterAsRasterLayer(parameters, self.INPUT_FRICTION, context)
         output_spread = self.parameterAsRasterLayer(parameters, self.OUTPUT_SPREAD, context)
-
+        setclone(input_points.dataProvider().dataSourceUri())
         PointsLayer = readmap(input_points.dataProvider().dataSourceUri())
         InitialFriction = readmap(input_initial.dataProvider().dataSourceUri())
         Friction = readmap(input_friction.dataProvider().dataSourceUri())

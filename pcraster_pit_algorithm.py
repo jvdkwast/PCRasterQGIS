@@ -124,7 +124,7 @@ class PCRasterPitAlgorithm(QgsProcessingAlgorithm):
         input_ldd = self.parameterAsRasterLayer(parameters, self.INPUT_LDD, context)
 
         output_pit = self.parameterAsRasterLayer(parameters, self.OUTPUT_PIT, context)
-
+        setclone(input_ldd.dataProvider().dataSourceUri())
         LDD = readmap(input_ldd.dataProvider().dataSourceUri())
         PitLayer = pit(LDD)
         outputFilePath = self.parameterAsOutputLayer(parameters, self.OUTPUT_PIT, context)
