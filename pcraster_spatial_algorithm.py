@@ -107,8 +107,8 @@ class PCRasterSpatialAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(     
             QgsProcessingParameterNumber(
                 self.INPUT_NONSPATIAL,
-                self.tr('Input nonspatial')
-#
+                self.tr('Input nonspatial'),
+                type=QgsProcessingParameterNumber.Double
             )
         )
         
