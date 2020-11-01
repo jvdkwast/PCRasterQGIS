@@ -20,3 +20,4 @@ Install PCRaster and QGIS
 
 5.	Now you can use both PCRaster and QGIS. For example open the python prompt in QGIS and import pcraster there.
 
+__[Video tutorial](https://youtu.be/IeqUhS_IwVY)__
