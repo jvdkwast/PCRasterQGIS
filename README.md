@@ -1,5 +1,5 @@
 # PCRasterQGIS
-QGIS processing scrips to make PCRaster available in the Processing Toolbox.
+QGIS processing scripts to make PCRaster available in the Processing Toolbox.
 Use QGIS in Anaconda and install PCRaster.
 
 Save the scipts to your QGIS profile folder \processing\scripts
