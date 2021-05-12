@@ -14,9 +14,9 @@ Install PCRaster and QGIS
 
     It also installs some other useful libraries.
 3.	<code>conda activate pcraster37</code>
-4.	Then install QGIS in this environment. Best to use the laterst LTR version:
+4.	Then install QGIS in this environment.
 
-    <code>conda install qgis=3.10.10 --channel conda-forge</code>
+    <code>conda install qgis --channel conda-forge</code>
 
 5.	Now you can use both PCRaster and QGIS. For example open the python prompt in QGIS and import pcraster there.
 
