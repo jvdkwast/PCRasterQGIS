@@ -24,3 +24,5 @@ __[Video tutorial](https://youtu.be/IeqUhS_IwVY)__
 
 After setting up the conda environment, you can use the QGIS Resource Sharing plugin to add PCRaster tools to the toolbox.
 Install the plugin, go to Settings and add: https://github.com/jvdkwast/qgisrepository.git
+
+![resourcesharingpcraster](https://user-images.githubusercontent.com/1172662/118008040-fee15a00-b34c-11eb-848b-4b2713db12cb.gif)
