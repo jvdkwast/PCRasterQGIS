@@ -2,7 +2,7 @@
 QGIS processing scripts to make PCRaster available in the Processing Toolbox.
 Use QGIS in Anaconda and install PCRaster.
 
-Save the scipts to your QGIS profile folder \processing\scripts
+Save the scripts to your QGIS profile folder \processing\scripts
 
 Install PCRaster and QGIS
 1.	Use the Anaconda prompt
