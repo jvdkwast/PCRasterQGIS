@@ -21,3 +21,6 @@ Install PCRaster and QGIS
 5.	Now you can use both PCRaster and QGIS. For example open the python prompt in QGIS and import pcraster there.
 
 __[Video tutorial](https://youtu.be/IeqUhS_IwVY)__
+
+After setting up the conda environment, you can use the QGIS Resource Sharing plugin to add PCRaster tools to the toolbox.
+Install the plugin, go to Settings and add: https://github.com/jvdkwast/qgisrepository.git
