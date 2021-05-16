@@ -17,13 +17,12 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingAlgorithm,
                        QgsDataSourceUri,
                        QgsProcessingParameterRasterDestination,
-                       QgsProcessingParameterRasterLayer,
-                       QgsProcessingParameterNumber)
+                       QgsProcessingParameterRasterLayer)
 from qgis import processing
 from pcraster import *
 
 
-class PCRasterSpreadmaxAlgorithm(QgsProcessingAlgorithm):
+class PCRasterCoverAlgorithm(QgsProcessingAlgorithm):
     """
     This is an example algorithm that takes a vector layer and
     creates a new identical one.
@@ -41,11 +40,9 @@ class PCRasterSpreadmaxAlgorithm(QgsProcessingAlgorithm):
     # used when calling the algorithm from another algorithm, or when
     # calling from the QGIS console.
 
-    INPUT_POINTS = 'INPUT1'
-    INPUT_INITIALFRICTION = 'INPUT2'
-    INPUT_FRICTION = 'INPUT3'
-    INPUT_MAX = 'INPUT4'
-    OUTPUT_SPREAD = 'OUTPUT'
+    INPUT_RASTER = 'INPUT'
+    INPUT_COVER = 'INPUT2'
+    OUTPUT_RASTER = 'OUTPUT'
 
     def tr(self, string):
         """
@@ -54,7 +51,7 @@ class PCRasterSpreadmaxAlgorithm(QgsProcessingAlgorithm):
         return QCoreApplication.translate('Processing', string)
 
     def createInstance(self):
-        return PCRasterSpreadmaxAlgorithm()
+        return PCRasterCoverAlgorithm()
 
     def name(self):
         """
@@ -64,14 +61,14 @@ class PCRasterSpreadmaxAlgorithm(QgsProcessingAlgorithm):
         lowercase alphanumeric characters only and no spaces or other
         formatting characters.
         """
-        return 'spreadmax'
+        return 'cover'
 
     def displayName(self):
         """
         Returns the translated algorithm name, which should be used for any
         user-visible display of the algorithm name.
         """
-        return self.tr('spreadmax')
+        return self.tr('cover')
 
     def group(self):
         """
@@ -97,17 +94,15 @@ class PCRasterSpreadmaxAlgorithm(QgsProcessingAlgorithm):
         parameters and outputs associated with it..
         """
         return self.tr(
-            """Total friction of the shortest accumulated friction path over a map with friction values from a source cell to cell under consideration considering maximum spread distance
+            """Missing values substituted for values from another raster (only one supported)
             
-            <a href="https://pcraster.geo.uu.nl/pcraster/4.3.0/documentation/pcraster_manual/sphinx/op_spreadmax.html">PCRaster documentation</a>
+            <a href="https://pcraster.geo.uu.nl/pcraster/4.3.0/documentation/pcraster_manual/sphinx/op_cover.html">PCRaster documentation</a>
             
             Parameters:
             
-            * <b>Points raster</b> (required) - boolean, nominal or ordinal raster layer with cells from which the shortest accumulated friction path to every cell centre is calculated
-            * <b>Initial friction layer</b> (required) - initial friction at start of spreading, scalar data type
-            * <b>Friction raster layer</b> (required) - The amount of increase in friction per unit distance, scalar data type
-            * <b>Maximum distance</b> (required) - Maximum distance for which the result is calculated. Beyond this distance cell results are given MV
-            * <b>Result spread max layer</b> (required) - Scalar raster with total friction of the shortest accumulated friction path over a map with friction values from a source cell to cell under consideration considering maximum spread distance
+            * <b>Input raster</b> (required) - Raster layer of any data type
+            * <b>Input cover raster<b> (required) - Raster layer of same data type as input raster
+            * <b>Output raster</b> (required) - Raster with result of same data type as input
             """
         )
 
@@ -117,63 +112,45 @@ class PCRasterSpreadmaxAlgorithm(QgsProcessingAlgorithm):
         with some other properties.
         """
 
+        self.addParameter(
+            QgsProcessingParameterRasterLayer(
+                self.INPUT_RASTER,
+                self.tr('Input Raster layer')
+            )
+        )
+        
+        self.addParameter(
+            QgsProcessingParameterRasterLayer(
+                self.INPUT_COVER,
+                self.tr('Input Cover layer')
+            )
+        )
 
-        self.addParameter(
-            QgsProcessingParameterRasterLayer(
-                self.INPUT_POINTS,
-                self.tr('Points raster')
-            )
-        )
-        
-        self.addParameter(
-            QgsProcessingParameterRasterLayer(
-                self.INPUT_INITIALFRICTION,
-                self.tr('Initial friction layer'),
-            )
-        )
 
-        self.addParameter(
-            QgsProcessingParameterRasterLayer(
-                self.INPUT_FRICTION,
-                self.tr('Friction layer')
-            )
-        )
-        
-        self.addParameter(
-            QgsProcessingParameterNumber(
-                self.INPUT_MAX,
-                self.tr('Maximum distance (map units)'),
-                defaultValue=100
-            )
-        )       
-        
         self.addParameter(
             QgsProcessingParameterRasterDestination(
-                self.OUTPUT_SPREAD,
-                self.tr('Output spread max result')
+                self.OUTPUT_RASTER,
+                self.tr("Output Raster Layer")
             )
         )
-        
 
     def processAlgorithm(self, parameters, context, feedback):
         """
         Here is where the processing itself takes place.
         """
 
-        input_points = self.parameterAsRasterLayer(parameters, self.INPUT_POINTS, context)
-        input_initial = self.parameterAsRasterLayer(parameters, self.INPUT_INITIALFRICTION, context)
-        input_friction = self.parameterAsRasterLayer(parameters, self.INPUT_FRICTION, context)
-        input_max = self.parameterAsDouble(parameters, self.INPUT_MAX, context)
-        output_spread = self.parameterAsRasterLayer(parameters, self.OUTPUT_SPREAD, context)
-        setclone(input_points.dataProvider().dataSourceUri())
-        PointsLayer = readmap(input_points.dataProvider().dataSourceUri())
-        InitialFriction = readmap(input_initial.dataProvider().dataSourceUri())
-        Friction = readmap(input_friction.dataProvider().dataSourceUri())
-        SpreadLayer = spreadmax(PointsLayer,InitialFriction,Friction,input_max)
-        outputFilePath = self.parameterAsOutputLayer(parameters, self.OUTPUT_SPREAD, context)
-        report(SpreadLayer,outputFilePath)
+        input_raster = self.parameterAsRasterLayer(parameters, self.INPUT_RASTER, context)
+        input_cover = self.parameterAsRasterLayer(parameters, self.INPUT_COVER, context)
+        output_raster = self.parameterAsRasterLayer(parameters, self.OUTPUT_RASTER, context)
+        setclone(input_raster.dataProvider().dataSourceUri())
+        InputRaster = readmap(input_raster.dataProvider().dataSourceUri())
+        coverLayer = readmap(input_cover.dataProvider().dataSourceUri())
+        resultLayer = cover(InputRaster,coverLayer)
+        outputFilePath = self.parameterAsOutputLayer(parameters, self.OUTPUT_RASTER, context)
+
+        report(resultLayer,outputFilePath)
 
         results = {}
-        results[self.OUTPUT_SPREAD] = outputFilePath
-        
+        results[self.OUTPUT_RASTER] = outputFilePath
+
         return results

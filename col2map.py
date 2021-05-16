@@ -13,17 +13,20 @@
 
 from qgis.PyQt.QtCore import QCoreApplication
 from qgis.core import (QgsProcessing,
+                       QgsFeatureSink,
                        QgsProcessingException,
                        QgsProcessingAlgorithm,
-                       QgsDataSourceUri,
-                       QgsProcessingParameterRasterDestination,
                        QgsProcessingParameterRasterLayer,
-                       QgsProcessingParameterNumber)
+                       QgsProcessingParameterEnum,
+                       QgsProcessingParameterFile,
+                       QgsProcessingParameterRasterDestination
+                       )
 from qgis import processing
-from pcraster import *
+from osgeo import gdal, gdalconst
+import os,sys
 
 
-class PCRasterSpreadmaxAlgorithm(QgsProcessingAlgorithm):
+class Col2mapAlgorithm(QgsProcessingAlgorithm):
     """
     This is an example algorithm that takes a vector layer and
     creates a new identical one.
@@ -41,11 +44,10 @@ class PCRasterSpreadmaxAlgorithm(QgsProcessingAlgorithm):
     # used when calling the algorithm from another algorithm, or when
     # calling from the QGIS console.
 
-    INPUT_POINTS = 'INPUT1'
-    INPUT_INITIALFRICTION = 'INPUT2'
-    INPUT_FRICTION = 'INPUT3'
-    INPUT_MAX = 'INPUT4'
-    OUTPUT_SPREAD = 'OUTPUT'
+    INPUT_CSV = 'INPUT'
+    INPUT_MASK = 'INPUT1'
+    INPUT_DATATYPE = 'INPUT2'
+    OUTPUT_PCRASTER = 'OUTPUT'
 
     def tr(self, string):
         """
@@ -54,7 +56,7 @@ class PCRasterSpreadmaxAlgorithm(QgsProcessingAlgorithm):
         return QCoreApplication.translate('Processing', string)
 
     def createInstance(self):
-        return PCRasterSpreadmaxAlgorithm()
+        return Col2mapAlgorithm()
 
     def name(self):
         """
@@ -64,14 +66,14 @@ class PCRasterSpreadmaxAlgorithm(QgsProcessingAlgorithm):
         lowercase alphanumeric characters only and no spaces or other
         formatting characters.
         """
-        return 'spreadmax'
+        return 'col2map'
 
     def displayName(self):
         """
         Returns the translated algorithm name, which should be used for any
         user-visible display of the algorithm name.
         """
-        return self.tr('spreadmax')
+        return self.tr('Column file to PCRaster Map')
 
     def group(self):
         """
@@ -88,7 +90,7 @@ class PCRasterSpreadmaxAlgorithm(QgsProcessingAlgorithm):
         contain lowercase alphanumeric characters only and no spaces or other
         formatting characters.
         """
-        return 'pcraster'
+        return self.tr('pcraster')
 
     def shortHelpString(self):
         """
@@ -96,20 +98,7 @@ class PCRasterSpreadmaxAlgorithm(QgsProcessingAlgorithm):
         should provide a basic description about what the algorithm does and the
         parameters and outputs associated with it..
         """
-        return self.tr(
-            """Total friction of the shortest accumulated friction path over a map with friction values from a source cell to cell under consideration considering maximum spread distance
-            
-            <a href="https://pcraster.geo.uu.nl/pcraster/4.3.0/documentation/pcraster_manual/sphinx/op_spreadmax.html">PCRaster documentation</a>
-            
-            Parameters:
-            
-            * <b>Points raster</b> (required) - boolean, nominal or ordinal raster layer with cells from which the shortest accumulated friction path to every cell centre is calculated
-            * <b>Initial friction layer</b> (required) - initial friction at start of spreading, scalar data type
-            * <b>Friction raster layer</b> (required) - The amount of increase in friction per unit distance, scalar data type
-            * <b>Maximum distance</b> (required) - Maximum distance for which the result is calculated. Beyond this distance cell results are given MV
-            * <b>Result spread max layer</b> (required) - Scalar raster with total friction of the shortest accumulated friction path over a map with friction values from a source cell to cell under consideration considering maximum spread distance
-            """
-        )
+        return self.tr("Convert CSV files to PCRaster format with control of the output data type")
 
     def initAlgorithm(self, config=None):
         """
@@ -117,63 +106,70 @@ class PCRasterSpreadmaxAlgorithm(QgsProcessingAlgorithm):
         with some other properties.
         """
 
-
         self.addParameter(
-            QgsProcessingParameterRasterLayer(
-                self.INPUT_POINTS,
-                self.tr('Points raster')
-            )
-        )
-        
-        self.addParameter(
-            QgsProcessingParameterRasterLayer(
-                self.INPUT_INITIALFRICTION,
-                self.tr('Initial friction layer'),
+            QgsProcessingParameterFile(
+                self.INPUT_CSV,
+                self.tr('Input column table text file')
             )
         )
 
         self.addParameter(
             QgsProcessingParameterRasterLayer(
-                self.INPUT_FRICTION,
-                self.tr('Friction layer')
+                self.INPUT_MASK,
+                self.tr('Raster mask layer')
             )
         )
-        
+
+        self.datatypes = [self.tr('Boolean'),self.tr('Nominal'),self.tr('Ordinal'),self.tr('Scalar'),self.tr('Directional'),self.tr('LDD')]
         self.addParameter(
-            QgsProcessingParameterNumber(
-                self.INPUT_MAX,
-                self.tr('Maximum distance (map units)'),
-                defaultValue=100
+            QgsProcessingParameterEnum(
+                self.INPUT_DATATYPE,
+                self.tr('Output data type'),
+                self.datatypes,
+                defaultValue=0
             )
-        )       
-        
+        ) 
+
+ # We add a feature sink in which to store our processed features (this
+        # usually takes the form of a newly created vector layer when the
+        # algorithm is run in QGIS).
         self.addParameter(
             QgsProcessingParameterRasterDestination(
-                self.OUTPUT_SPREAD,
-                self.tr('Output spread max result')
+                self.OUTPUT_PCRASTER,
+                self.tr('PCRaster layer')
             )
         )
-        
 
     def processAlgorithm(self, parameters, context, feedback):
         """
         Here is where the processing itself takes place.
         """
 
-        input_points = self.parameterAsRasterLayer(parameters, self.INPUT_POINTS, context)
-        input_initial = self.parameterAsRasterLayer(parameters, self.INPUT_INITIALFRICTION, context)
-        input_friction = self.parameterAsRasterLayer(parameters, self.INPUT_FRICTION, context)
-        input_max = self.parameterAsDouble(parameters, self.INPUT_MAX, context)
-        output_spread = self.parameterAsRasterLayer(parameters, self.OUTPUT_SPREAD, context)
-        setclone(input_points.dataProvider().dataSourceUri())
-        PointsLayer = readmap(input_points.dataProvider().dataSourceUri())
-        InitialFriction = readmap(input_initial.dataProvider().dataSourceUri())
-        Friction = readmap(input_friction.dataProvider().dataSourceUri())
-        SpreadLayer = spreadmax(PointsLayer,InitialFriction,Friction,input_max)
-        outputFilePath = self.parameterAsOutputLayer(parameters, self.OUTPUT_SPREAD, context)
-        report(SpreadLayer,outputFilePath)
+        input_mask = self.parameterAsRasterLayer(parameters, self.INPUT_MASK, context)
+        clone = input_mask.dataProvider().dataSourceUri()
+        #print(input_dem.dataProvider().dataSourceUri())
 
+        table = self.parameterAsFile(parameters, self.INPUT_CSV, context)
+    
+        dst_filename = self.parameterAsOutputLayer(parameters, self.OUTPUT_PCRASTER, context)
+        
+        input_datatype = self.parameterAsEnum(parameters, self.INPUT_DATATYPE, context)
+        if input_datatype == 0:
+            cmd = "col2map -B {} {} --clone {}".format(table, dst_filename,clone)
+            feedback.pushInfo('Running command {}'.format(cmd))
+        elif input_datatype == 1:
+            cmd = "col2map -N {} {} --clone {}".format(table, dst_filename,clone)
+        elif input_datatype == 2:
+            cmd = "col2map -O {} {} --clone {}".format(table, dst_filename,clone)
+        elif input_datatype == 3:
+            cmd = "col2map -S {} {} --clone {}".format(table, dst_filename,clone)
+        elif input_datatype == 4:
+            cmd = "col2map -D {} {} --clone {}".format(table, dst_filename,clone)
+        else:
+            cmd = "col2map -L {} {} --clone {}".format(table, dst_filename,clone)
+    
+        os.system(cmd)
         results = {}
-        results[self.OUTPUT_SPREAD] = outputFilePath
+        results[self.OUTPUT_PCRASTER] = dst_filename
         
         return results
