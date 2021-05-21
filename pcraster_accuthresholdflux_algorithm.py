@@ -22,7 +22,7 @@ from qgis import processing
 from pcraster import *
 
 
-class PCRasterAccucapacityfluxAlgorithm(QgsProcessingAlgorithm):
+class PCRasterAccuthresholdfluxAlgorithm(QgsProcessingAlgorithm):
     """
     This is an example algorithm that takes a vector layer and
     creates a new identical one.
@@ -42,7 +42,7 @@ class PCRasterAccucapacityfluxAlgorithm(QgsProcessingAlgorithm):
 
     INPUT_FLOWDIRECTION = 'INPUT'
     INPUT_MATERIAL = 'INPUT2'
-    INPUT_CAPACITY = 'INPUT3'
+    INPUT_THRESHOLD = 'INPUT3'
     OUTPUT_FLUX = 'OUTPUT'
     OUTPUT_STATE = 'OUTPUT2'
 
@@ -53,7 +53,7 @@ class PCRasterAccucapacityfluxAlgorithm(QgsProcessingAlgorithm):
         return QCoreApplication.translate('Processing', string)
 
     def createInstance(self):
-        return PCRasterAccucapacityfluxAlgorithm()
+        return PCRasterAccuthresholdfluxAlgorithm()
 
     def name(self):
         """
@@ -63,14 +63,14 @@ class PCRasterAccucapacityfluxAlgorithm(QgsProcessingAlgorithm):
         lowercase alphanumeric characters only and no spaces or other
         formatting characters.
         """
-        return 'accucapacityflux'
+        return 'accuthresholdflux'
 
     def displayName(self):
         """
         Returns the translated algorithm name, which should be used for any
         user-visible display of the algorithm name.
         """
-        return self.tr('accucapacityflux and accucapicitystate')
+        return self.tr('accuthresholdflux and accuthresholdstate')
 
     def group(self):
         """
@@ -96,15 +96,15 @@ class PCRasterAccucapacityfluxAlgorithm(QgsProcessingAlgorithm):
         parameters and outputs associated with it..
         """
         return self.tr(
-            """Transport of material downstream over a local drain direction network
+            """Input of material downstream over a local drain direction network when transport threshold is exceeded
             
-            <a href="https://pcraster.geo.uu.nl/pcraster/4.3.0/documentation/pcraster_manual/sphinx/op_accucapacity.html">PCRaster documentation</a>
+            <a href="https://pcraster.geo.uu.nl/pcraster/4.3.0/documentation/pcraster_manual/sphinx/op_accuthreshold.html">PCRaster documentation</a>
             
             Parameters:
             
             * <b>Input flow direction raster</b> (required) - Flow direction in PCRaster LDD format (see lddcreate)
             * <b>Input material raster</b> (required) - Scalar raster with amount of material input (>= 0)
-            * <b>Input transport capacity raster</b> (required) - Scalar raster with transport capacity (>= 0)
+            * <b>Input transport threshold raster</b> (required) - Scalar raster with transport threshold values (>= 0)
             * <b>Output Flux raster</b> (required) - Scalar raster with result flux of material
             * <b>Output State raster</b> (required) - Scalar raster with result state of stored material
             """
@@ -132,8 +132,8 @@ class PCRasterAccucapacityfluxAlgorithm(QgsProcessingAlgorithm):
         
         self.addParameter(
             QgsProcessingParameterRasterLayer(
-                self.INPUT_CAPACITY,
-                self.tr('Input Storage Capacity Raster Layer')
+                self.INPUT_THRESHOLD,
+                self.tr('Input Transport Threshold Raster Layer')
             )
         )
 
@@ -158,15 +158,15 @@ class PCRasterAccucapacityfluxAlgorithm(QgsProcessingAlgorithm):
 
         input_flowdirection = self.parameterAsRasterLayer(parameters, self.INPUT_FLOWDIRECTION, context)
         input_material = self.parameterAsRasterLayer(parameters, self.INPUT_MATERIAL, context)
-        input_capacity = self.parameterAsRasterLayer(parameters, self.INPUT_CAPACITY, context)
+        input_threshold = self.parameterAsRasterLayer(parameters, self.INPUT_THRESHOLD, context)
         output_flux = self.parameterAsRasterLayer(parameters, self.OUTPUT_FLUX, context)
         output_state = self.parameterAsRasterLayer(parameters, self.OUTPUT_STATE, context)
         setclone(input_flowdirection.dataProvider().dataSourceUri())
         LDD = readmap(input_flowdirection.dataProvider().dataSourceUri())
         material = readmap(input_material.dataProvider().dataSourceUri())
-        transportcapacity = readmap(input_capacity.dataProvider().dataSourceUri())
-        resultflux = accucapacityflux(LDD, material, transportcapacity)
-        resultstate = accucapacitystate(LDD, material, transportcapacity)
+        transportthreshold = readmap(input_threshold.dataProvider().dataSourceUri())
+        resultflux = accuthresholdflux(LDD, material, transportthreshold)
+        resultstate = accuthresholdstate(LDD, material, transportthreshold)
         
         outputFlux = self.parameterAsOutputLayer(parameters, self.OUTPUT_FLUX, context)
         outputState = self.parameterAsOutputLayer(parameters, self.OUTPUT_STATE, context)

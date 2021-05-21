@@ -13,20 +13,19 @@
 
 from qgis.PyQt.QtCore import QCoreApplication
 from qgis.core import (QgsProcessing,
+                       QgsFeatureSink,
                        QgsProcessingException,
                        QgsProcessingAlgorithm,
-                       QgsDataSourceUri,
-                       QgsProcessingParameterRasterDestination,
                        QgsProcessingParameterRasterLayer,
-                       QgsProcessingParameterFile,
-                       QgsProcessingParameterEnum,
-                       QgsProcessingParameterNumber,
-                       QgsProcessingParameterMultipleLayers)
+                       QgsProcessingParameterMultipleLayers,
+                       QgsProcessingParameterRasterDestination
+                       )
 from qgis import processing
-from pcraster import *
+from osgeo import gdal, gdalconst
+import os,sys
 
 
-class PCRasterLookupAlgorithm(QgsProcessingAlgorithm):
+class ResampleAlgorithm(QgsProcessingAlgorithm):
     """
     This is an example algorithm that takes a vector layer and
     creates a new identical one.
@@ -45,9 +44,8 @@ class PCRasterLookupAlgorithm(QgsProcessingAlgorithm):
     # calling from the QGIS console.
 
     INPUT_RASTERS = 'INPUT'
-    INPUT_TABLE = 'INPUT1'
-    INPUT_DATATYPE = 'INPUT2'
-    OUTPUT_RASTER = 'OUTPUT'
+    INPUT_MASK = 'INPUT1'
+    OUTPUT_PCRASTER = 'OUTPUT'
 
     def tr(self, string):
         """
@@ -56,7 +54,7 @@ class PCRasterLookupAlgorithm(QgsProcessingAlgorithm):
         return QCoreApplication.translate('Processing', string)
 
     def createInstance(self):
-        return PCRasterLookupAlgorithm()
+        return ResampleAlgorithm()
 
     def name(self):
         """
@@ -66,14 +64,14 @@ class PCRasterLookupAlgorithm(QgsProcessingAlgorithm):
         lowercase alphanumeric characters only and no spaces or other
         formatting characters.
         """
-        return 'lookup'
+        return 'resample'
 
     def displayName(self):
         """
         Returns the translated algorithm name, which should be used for any
         user-visible display of the algorithm name.
         """
-        return self.tr('lookup')
+        return self.tr('resample')
 
     def group(self):
         """
@@ -90,7 +88,7 @@ class PCRasterLookupAlgorithm(QgsProcessingAlgorithm):
         contain lowercase alphanumeric characters only and no spaces or other
         formatting characters.
         """
-        return 'pcraster'
+        return self.tr('pcraster')
 
     def shortHelpString(self):
         """
@@ -99,16 +97,15 @@ class PCRasterLookupAlgorithm(QgsProcessingAlgorithm):
         parameters and outputs associated with it..
         """
         return self.tr(
-            """Compares cell value(s) of one or more expression(s) with the search key in a table
+            """Cuts one map or joins together several maps by resampling to the cells of the result map.
             
-            <a href="https://pcraster.geo.uu.nl/pcraster/4.3.0/documentation/pcraster_manual/sphinx/op_lookup.html">PCRaster documentation</a>
+            <a href="https://pcraster.geo.uu.nl/pcraster/4.3.0/documentation/pcraster_manual/sphinx/app_resample.html">PCRaster documentation</a>
             
             Parameters:
             
-            * <b>Input Raster layers</b> (required) - rasters layer from any data type
-            * <b>Input lookup table</b> (required) - lookup table in ASCII text format. Nr of columns is number of input rasters plus one.
-            * <b>Output data type</b> (required) - data type of output raster
-            * <b>Output raster layer</b> (required) - raster layer with result of the lookup in output data type
+            * <b>Input Raster layers</b> (required) - raster layers from any data type (all must have the same data type). When one layer is used, it will be resampled to the raster properties of the mask layer. When multiple layers are used, they will also be mosaiced into a raster with the dimensions of the mask layer.
+            * <b>Input Mask</b> (required) - clone map that will be used to determine the output raster properties
+            * <b>Output raster layer</b> (required) - raster layer with resample result
             """
         )
 
@@ -118,7 +115,6 @@ class PCRasterLookupAlgorithm(QgsProcessingAlgorithm):
         with some other properties.
         """
 
-
         self.addParameter(
             QgsProcessingParameterMultipleLayers(
                 self.INPUT_RASTERS,
@@ -127,61 +123,37 @@ class PCRasterLookupAlgorithm(QgsProcessingAlgorithm):
            )
         )
 
+
         self.addParameter(
-            QgsProcessingParameterFile(
-                self.INPUT_TABLE,
-                self.tr('Input lookup table')
+            QgsProcessingParameterRasterLayer(
+                self.INPUT_MASK,
+                self.tr('Raster mask layer')
             )
         )
-        
-        self.datatypes = [self.tr('Boolean'),self.tr('Nominal'),self.tr('Ordinal'),self.tr('Scalar'),self.tr('Directional'),self.tr('LDD')]
-        self.addParameter(
-            QgsProcessingParameterEnum(
-                self.INPUT_DATATYPE,
-                self.tr('Output data type'),
-                self.datatypes,
-                defaultValue=0
-            )
-        )
-        
+
+
         self.addParameter(
             QgsProcessingParameterRasterDestination(
-                self.OUTPUT_RASTER,
-                self.tr('Output Raster Layer')
+                self.OUTPUT_PCRASTER,
+                self.tr('Output resample raster layer')
             )
         )
-                
-    
+
     def processAlgorithm(self, parameters, context, feedback):
         """
         Here is where the processing itself takes place.
         """
-
         input_rasters = []
         for l in self.parameterAsLayerList(parameters, self.INPUT_RASTERS, context):
             input_rasters.append(l.source())
-        input_lookuptable = self.parameterAsFile(parameters, self.INPUT_TABLE, context)
-        output_raster = self.parameterAsRasterLayer(parameters, self.OUTPUT_RASTER, context)
-        setclone(input_rasters[0])
-        outputFilePath = self.parameterAsOutputLayer(parameters, self.OUTPUT_RASTER, context)
-
-        input_datatype = self.parameterAsEnum(parameters, self.INPUT_DATATYPE, context)
-        if input_datatype == 0:
-            Result = lookupboolean(input_lookuptable,*input_rasters)
-        elif input_datatype == 1:
-            Result = lookupnominal(input_lookuptable,*input_rasters)
-        elif input_datatype == 2:
-            Result = lookupordinal(input_lookuptable,*input_rasters)
-        elif input_datatype == 3:
-            Result = lookupscalar(input_lookuptable,*input_rasters)
-        elif input_datatype == 4:
-            Result = lookupdirectional(input_lookuptable,*input_rasters)
-        else:
-            Result = lookupldd(input_lookuptable,*input_rasters)
-        
-        report(Result,outputFilePath)
-
+        input_mask = self.parameterAsRasterLayer(parameters, self.INPUT_MASK, context)
+        clone = input_mask.dataProvider().dataSourceUri()
+    
+        dst_filename = self.parameterAsOutputLayer(parameters, self.OUTPUT_PCRASTER, context)
+        rasterstrings = " ".join(input_rasters)
+        cmd = "resample {} {} --clone {}".format(rasterstrings,dst_filename,clone)
+        os.system(cmd)
         results = {}
-        results[self.OUTPUT_RASTER] = outputFilePath
+        results[self.OUTPUT_PCRASTER] = dst_filename
         
         return results
