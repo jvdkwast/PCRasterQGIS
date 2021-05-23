@@ -13,19 +13,16 @@
 
 from qgis.PyQt.QtCore import QCoreApplication
 from qgis.core import (QgsProcessing,
-                       QgsFeatureSink,
                        QgsProcessingException,
                        QgsProcessingAlgorithm,
-                       QgsProcessingParameterRasterLayer,
-                       QgsProcessingParameterMultipleLayers,
-                       QgsProcessingParameterRasterDestination
-                       )
+                       QgsDataSourceUri,
+                       QgsProcessingParameterRasterDestination,
+                       QgsProcessingParameterRasterLayer)
 from qgis import processing
-from osgeo import gdal, gdalconst
-import os,sys
+from pcraster import *
 
 
-class ResampleAlgorithm(QgsProcessingAlgorithm):
+class PCRasterLddMaskAlgorithm(QgsProcessingAlgorithm):
     """
     This is an example algorithm that takes a vector layer and
     creates a new identical one.
@@ -43,9 +40,9 @@ class ResampleAlgorithm(QgsProcessingAlgorithm):
     # used when calling the algorithm from another algorithm, or when
     # calling from the QGIS console.
 
-    INPUT_RASTERS = 'INPUT'
-    INPUT_MASK = 'INPUT1'
-    OUTPUT_PCRASTER = 'OUTPUT'
+    INPUT_LDD = 'INPUT'
+    INPUT_MASK = 'INPUT2'
+    OUTPUT_RASTER = 'OUTPUT'
 
     def tr(self, string):
         """
@@ -54,7 +51,7 @@ class ResampleAlgorithm(QgsProcessingAlgorithm):
         return QCoreApplication.translate('Processing', string)
 
     def createInstance(self):
-        return ResampleAlgorithm()
+        return PCRasterLddMaskAlgorithm()
 
     def name(self):
         """
@@ -64,14 +61,14 @@ class ResampleAlgorithm(QgsProcessingAlgorithm):
         lowercase alphanumeric characters only and no spaces or other
         formatting characters.
         """
-        return 'resample'
+        return 'lddmask'
 
     def displayName(self):
         """
         Returns the translated algorithm name, which should be used for any
         user-visible display of the algorithm name.
         """
-        return self.tr('resample')
+        return self.tr('lddmask')
 
     def group(self):
         """
@@ -88,7 +85,7 @@ class ResampleAlgorithm(QgsProcessingAlgorithm):
         contain lowercase alphanumeric characters only and no spaces or other
         formatting characters.
         """
-        return self.tr('pcraster')
+        return 'pcraster'
 
     def shortHelpString(self):
         """
@@ -97,15 +94,15 @@ class ResampleAlgorithm(QgsProcessingAlgorithm):
         parameters and outputs associated with it..
         """
         return self.tr(
-            """Cuts one map or joins together several maps by resampling to the cells of the result map.
+            """Local drain direction map cut into a (smaller) sound local drain direction map
             
-            <a href="https://pcraster.geo.uu.nl/pcraster/4.3.1/documentation/pcraster_manual/sphinx/app_resample.html">PCRaster documentation</a>
+            <a href="https://pcraster.geo.uu.nl/pcraster/4.3.1/documentation/pcraster_manual/sphinx/op_lddmask.html">PCRaster documentation</a>
             
             Parameters:
             
-            * <b>Input Raster layers</b> (required) - raster layers from any data type (all must have the same data type). When one layer is used, it will be resampled to the raster properties of the mask layer. When multiple layers are used, they will also be mosaiced into a raster with the dimensions of the mask layer.
-            * <b>Input Mask</b> (required) - clone map that will be used to determine the output raster properties
-            * <b>Output raster layer</b> (required) - raster layer with resample result
+            * <b>Input flow direction raster</b> (required) - Flow direction raster in PCRaster LDD format (see lddcreate)
+            * <b>Input mask raster</b> (required) - Boolean raster
+            * <b>Result lddmask layer</b> (required) - Flow direction raster in PCRaster LDD format for TRUE values in mask raster
             """
         )
 
@@ -115,27 +112,25 @@ class ResampleAlgorithm(QgsProcessingAlgorithm):
         with some other properties.
         """
 
+        # We add the input DEM.
         self.addParameter(
-            QgsProcessingParameterMultipleLayers(
-                self.INPUT_RASTERS,
-                self.tr('Input Raster Layer(s)'),
-                QgsProcessing.TypeRaster
-           )
+            QgsProcessingParameterRasterLayer(
+                self.INPUT_LDD,
+                self.tr('LDD layer')
+            )
         )
-
 
         self.addParameter(
             QgsProcessingParameterRasterLayer(
                 self.INPUT_MASK,
-                self.tr('Raster mask layer')
+                self.tr('Mask layer')
             )
         )
 
-
         self.addParameter(
             QgsProcessingParameterRasterDestination(
-                self.OUTPUT_PCRASTER,
-                self.tr('Output resample raster layer')
+                self.OUTPUT_RASTER,
+                self.tr('Result lddmask layer')
             )
         )
 
@@ -143,17 +138,18 @@ class ResampleAlgorithm(QgsProcessingAlgorithm):
         """
         Here is where the processing itself takes place.
         """
-        input_rasters = []
-        for l in self.parameterAsLayerList(parameters, self.INPUT_RASTERS, context):
-            input_rasters.append(l.source())
+
+        input_ldd = self.parameterAsRasterLayer(parameters, self.INPUT_LDD, context)
         input_mask = self.parameterAsRasterLayer(parameters, self.INPUT_MASK, context)
-        clone = input_mask.dataProvider().dataSourceUri()
-    
-        dst_filename = self.parameterAsOutputLayer(parameters, self.OUTPUT_PCRASTER, context)
-        rasterstrings = " ".join(input_rasters)
-        cmd = "resample {} {} --clone {}".format(rasterstrings,dst_filename,clone)
-        os.system(cmd)
+        output_raster = self.parameterAsRasterLayer(parameters, self.OUTPUT_RASTER, context)
+        setclone(input_ldd.dataProvider().dataSourceUri())
+        LDD = readmap(input_ldd.dataProvider().dataSourceUri())
+        Mask = readmap(input_mask.dataProvider().dataSourceUri())
+        ResultRaster = lddmask(LDD,Mask)
+        outputFilePath = self.parameterAsOutputLayer(parameters, self.OUTPUT_RASTER, context)
+        report(ResultRaster,outputFilePath)
+
         results = {}
-        results[self.OUTPUT_PCRASTER] = dst_filename
+        results[self.OUTPUT_RASTER] = outputFilePath
         
         return results
