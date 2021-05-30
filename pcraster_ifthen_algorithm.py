@@ -17,14 +17,12 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingAlgorithm,
                        QgsDataSourceUri,
                        QgsProcessingParameterRasterDestination,
-                       QgsProcessingParameterEnum,
-                       QgsProcessingParameterNumber,
                        QgsProcessingParameterRasterLayer)
 from qgis import processing
 from pcraster import *
 
 
-class PCRasterConvertdatatypeAlgorithm(QgsProcessingAlgorithm):
+class PCRasterIfThenAlgorithm(QgsProcessingAlgorithm):
     """
     This is an example algorithm that takes a vector layer and
     creates a new identical one.
@@ -42,9 +40,9 @@ class PCRasterConvertdatatypeAlgorithm(QgsProcessingAlgorithm):
     # used when calling the algorithm from another algorithm, or when
     # calling from the QGIS console.
 
-    INPUT_RASTER = 'INPUT'
-    INPUT_DATATYPE = 'INPUT1'
-    OUTPUT_RASTER = 'OUTPUT'
+    INPUT_CONDITION = 'INPUT'
+    INPUT_TRUE = 'INPUT1'
+    OUTPUT = 'OUTPUT'
 
     def tr(self, string):
         """
@@ -53,7 +51,7 @@ class PCRasterConvertdatatypeAlgorithm(QgsProcessingAlgorithm):
         return QCoreApplication.translate('Processing', string)
 
     def createInstance(self):
-        return PCRasterConvertdatatypeAlgorithm()
+        return PCRasterIfThenAlgorithm()
 
     def name(self):
         """
@@ -63,14 +61,14 @@ class PCRasterConvertdatatypeAlgorithm(QgsProcessingAlgorithm):
         lowercase alphanumeric characters only and no spaces or other
         formatting characters.
         """
-        return 'convertdatatype'
+        return 'ifthen'
 
     def displayName(self):
         """
         Returns the translated algorithm name, which should be used for any
         user-visible display of the algorithm name.
         """
-        return self.tr('convert layer data type')
+        return self.tr('if then')
 
     def group(self):
         """
@@ -93,12 +91,19 @@ class PCRasterConvertdatatypeAlgorithm(QgsProcessingAlgorithm):
         """
         Returns a localised short helper string for the algorithm. This string
         should provide a basic description about what the algorithm does and the
-        parameters and outputs associated with it.
+        parameters and outputs associated with it..
         """
         return self.tr(
-        """
-        Conversion of the layer data type.<a href=https://pcraster.geo.uu.nl/pcraster/4.3.1/documentation/pcraster_manual/sphinx/secfunclist.html#data-types-conversion-and-assignment>PCRaster documentation</a>
-        """
+            """Return missing values if condition is not met.
+            
+            <a href="https://pcraster.geo.uu.nl/pcraster/4.3.1/documentation/pcraster_manual/sphinx/op_ifthen.html#ifthen">PCRaster documentation</a>
+            
+            Parameters:
+            
+            * <b>Input boolean condition raster layer</b> (required) - boolean raster. True cells will get values of input raster layer. False cells will get nodata
+            * <b>Input True Raster</b> (required) - raster layer of any data type with cells that will be assigned to True cells of the boolean input layer
+            * <b>Output raster</b> (required) - raster layer of same data type as input raster
+            """
         )
 
     def initAlgorithm(self, config=None):
@@ -106,29 +111,26 @@ class PCRasterConvertdatatypeAlgorithm(QgsProcessingAlgorithm):
         Here we define the inputs and output of the algorithm, along
         with some other properties.
         """
-        
-        self.addParameter(     
-            QgsProcessingParameterRasterLayer(
-                self.INPUT_RASTER,
-                self.tr('Input raster layer')
-            )
-        )
-        
-        self.datatypes = [self.tr('Boolean'),self.tr('Nominal'),self.tr('Ordinal'),self.tr('Scalar'),self.tr('Directional'),self.tr('LDD')]
-        self.addParameter(
-            QgsProcessingParameterEnum(
-                self.INPUT_DATATYPE,
-                self.tr('Output data type'),
-                self.datatypes,
-                defaultValue=0
-            )
-        )
-        
 
         self.addParameter(
+            QgsProcessingParameterRasterLayer(
+                self.INPUT_CONDITION,
+                self.tr('Input Boolean Condition Raster')
+            )
+        )
+        
+        self.addParameter(
+            QgsProcessingParameterRasterLayer(
+                self.INPUT_TRUE,
+                self.tr('Input True Raster')
+            )
+        )
+
+        
+        self.addParameter(
             QgsProcessingParameterRasterDestination(
-                self.OUTPUT_RASTER,
-                self.tr("Output raster layer")
+                self.OUTPUT,
+                self.tr('Output Raster')
             )
         )
 
@@ -137,29 +139,18 @@ class PCRasterConvertdatatypeAlgorithm(QgsProcessingAlgorithm):
         Here is where the processing itself takes place.
         """
 
-        input_raster = self.parameterAsRasterLayer(parameters, self.INPUT_RASTER, context)
-        InputRaster = readmap(input_raster.dataProvider().dataSourceUri())
-        output_raster = self.parameterAsRasterLayer(parameters, self.OUTPUT_RASTER, context)
-        #setclone(input_raster.dataProvider().dataSourceUri())
-        input_datatype = self.parameterAsEnum(parameters, self.INPUT_DATATYPE, context)
-        if input_datatype == 0:
-            ConversionResult = boolean(InputRaster)
-        elif input_datatype == 1:
-            ConversionResult = nominal(InputRaster)
-        elif input_datatype == 2:
-            ConversionResult = ordinal(InputRaster)
-        elif input_datatype == 3:
-            ConversionResult = scalar(InputRaster)
-        elif input_datatype == 4:
-            ConversionResult = directional(InputRaster)
-        else:
-            ConversionResult = ldd(InputRaster)
+        input_condition = self.parameterAsRasterLayer(parameters, self.INPUT_CONDITION, context)
+        input_true = self.parameterAsRasterLayer(parameters, self.INPUT_TRUE, context)
+        setclone(input_condition.dataProvider().dataSourceUri())
+        conditionRaster = readmap(input_condition.dataProvider().dataSourceUri())
+        trueRaster = readmap(input_true.dataProvider().dataSourceUri())
+        resultRaster = ifthen(conditionRaster,trueRaster)
 
-        outputFilePath = self.parameterAsOutputLayer(parameters, self.OUTPUT_RASTER, context)
+        outputFilePath = self.parameterAsOutputLayer(parameters, self.OUTPUT, context)
 
-        report(ConversionResult,outputFilePath)
+        report(resultRaster,outputFilePath)
 
         results = {}
-        results[self.OUTPUT_RASTER] = outputFilePath
+        results[self.OUTPUT] = outputFilePath
         
         return results
