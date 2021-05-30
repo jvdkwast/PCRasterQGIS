@@ -15,6 +15,7 @@ Install PCRaster and QGIS
 4.	Now you can use both PCRaster and QGIS. For example open the python prompt in QGIS and import pcraster there.
 
 More info about installing PCRaster with conda: https://pcraster.geo.uu.nl/pcraster/4.3.1/documentation/pcraster_project/install.html
+
 More info about installing QGIS with conda: https://gisunchained.wordpress.com/2019/05/29/using-qgis-from-conda/
 
 __[Video tutorial](https://youtu.be/IeqUhS_IwVY)__
