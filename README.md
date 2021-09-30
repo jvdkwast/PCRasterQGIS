@@ -1,3 +1,7 @@
+__Note that the tools are now available in the PCRaster Tools Plugin from the QGIS Plugins Repository__
+
+__See https://jvdkwast.github.io/qgis-processing-pcraster/__
+
 # PCRasterQGIS
 QGIS processing scripts to make PCRaster available in the Processing Toolbox.
 Use QGIS in Anaconda and install PCRaster.
